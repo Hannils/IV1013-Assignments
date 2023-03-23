@@ -25,4 +25,17 @@ public class MyRandom extends Random {
     public void setSeed(long seed) {
         this.seed = seed;
     }
+
+
+    public static void main(String[] args) {
+        var prng = new Random(Long.parseLong("123123123123123"));
+        long startTime = System.nanoTime();
+        for (int i = 0; i < 300; i++) {
+            for (int j = 0; j < 300; j++) {
+                prng.nextInt(2);
+            }
+        }
+        long endTime = System.nanoTime();
+        System.out.println(endTime - startTime);
+    }
 }
