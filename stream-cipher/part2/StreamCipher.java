@@ -11,7 +11,7 @@ public class StreamCipher {
             if (args.length != 3) throw new ArrayIndexOutOfBoundsException("Missing parameter from command line");
             long key = Long.parseLong(args[0]);
             File inputFile = new File(args[1]);
-            File outputFile = new File(args[1]);
+            File outputFile = new File(args[2]);
             BufferedReader fileReader = new BufferedReader(new FileReader(inputFile));
             BufferedWriter writer = new BufferedWriter(new FileWriter(outputFile));
             MyRandom prng = new MyRandom(key);
