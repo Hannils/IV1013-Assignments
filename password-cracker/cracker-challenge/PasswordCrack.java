@@ -13,6 +13,7 @@ public class PasswordCrack {
         String encryptedPassword;
         String firstname;
         String lastname;
+
         public MyThread(ArrayList<ArrayList<String>> dictionaryList, String salt, String encryptedPassword, String firstname, String lastname) {
             this.dictionaryList = dictionaryList;
             this.salt = salt;
@@ -27,13 +28,10 @@ public class PasswordCrack {
                     if (crack(salt, word, encryptedPassword) != null) {
                         System.out.println("Password found: " + word + " for user: " + firstname + " " + lastname );
                         cracked = true;
-                        break;
+                        return;
                     }
-                    if (cracked == true) break;
                 }
-                if (cracked == true) break;
             }
-            return;
         }
     }
     public static void main(String[] args) {
@@ -78,17 +76,6 @@ public class PasswordCrack {
                 Thread t = new MyThread(dictionaryList, user.get(0), user.get(1), user.get(2), user.get(3));
                 t.start();
             }
-
-            //for (var user : userList) {
-            //    for (ArrayList<String> dic : dictionaryList) {
-            //        for (String word : dic) {
-            //            if (crack(user.get(0), word, user.get(1)) != null) {
-            //                System.out.println("Password found: " + word + " for user: " + user.get(2) + " " + user.get(3) );
-            //                break;
-            //            }
-            //        }
-            //    }
-            //}
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         }
@@ -96,12 +83,11 @@ public class PasswordCrack {
 
     public static ArrayList<String> parsePasswd(String line) {
         var lines = line.split(":");
-        var encrypted = lines[1];
         var splitUserInfo = lines[4].split(" ");
         return new ArrayList<String>() { 
             { 
-                add(encrypted.substring(0, 2)); 
-                add(encrypted);
+                add(lines[1].substring(0, 2)); 
+                add(lines[1]);
                 add(lines[0]);
                 add(splitUserInfo[splitUserInfo.length - 1].toLowerCase());
             } 
