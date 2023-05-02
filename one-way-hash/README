@@ -1,0 +1,4 @@
+1. cd into directory of java program
+1. Do the following command to compile the file `javac Force.java`
+1. To run the program do the following command `java Force`
+1. Check the output of the program. Every string to be broken is hardcoded into the program and should return a result.

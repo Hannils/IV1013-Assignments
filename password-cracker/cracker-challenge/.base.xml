@@ -1,0 +1,21 @@
+<Submission>
+  <!--Password Cracker Challenge-->
+  <Course>
+    <ID>39072</ID>
+    <Name>IV1013 VT23 Introduction to Computer Security</Name>
+  </Course>
+  <Date>Tue May  2 10:50:57 2023</Date>
+  <Student>
+    <Mail>hamnilss@kth.se</Mail>
+    <Name>Hampus Nilsson</Name>
+    <ID>108751</ID>
+  </Student>
+  <Assignment>
+    <ID>241269</ID>
+    <Name>Password Cracker Challenge</Name>
+  </Assignment>
+  <Path>submissions/hamnilss-108751</Path>
+  <Files>
+    <Type>none</Type>
+  </Files>
+</Submission>

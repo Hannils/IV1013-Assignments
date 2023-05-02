@@ -1,10 +1,8 @@
-import java.math.BigInteger;
 import java.security.*;
 
 public class Force {
     public static void main(String[] args) {
         String[] strs = new String[] { "IV1013 security", "Security is fun", "Yes, indeed", "Secure IV1013", "No way" };
-        // String[] strs = new String[] { "IV1013 security" };
 
         String digestAlgorithm = "SHA-256";
         String textEncoding = "UTF-8";
