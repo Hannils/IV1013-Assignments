@@ -41,7 +41,14 @@ public class PasswordCrack {
         try {
             Scanner passwdScanner = new Scanner(passwd);
             Scanner dictionaryScanner = new Scanner(dictionary);
-            ArrayList<String> wordList = new ArrayList<>();
+            ArrayList<String> wordList = new ArrayList<>() {
+                {
+                    add("123456");
+                    add("123456789");
+                    add("111111");
+                    add("qwerty");
+                }
+            };
             ArrayList<String> userNames = new ArrayList<>();
             ArrayList<ArrayList<String>> userList = new ArrayList<>();
 
@@ -60,10 +67,10 @@ public class PasswordCrack {
             }
             ArrayList<ArrayList<String>> dictionaryList = new ArrayList<>();
             dictionaryList.add(wordList);
-            dictionaryList.add(prependDictionary(wordList));
-            dictionaryList.add(appendDictionary(wordList));
-            dictionaryList.add(deleteFirstDictionary(wordList));
-            dictionaryList.add(deleteLastDictionary(wordList));
+            dictionaryList.add(insertAtDictionary(wordList, true, false));
+            dictionaryList.add(insertAtDictionary(wordList, false, true));
+            dictionaryList.add(deleteAtDictionary(wordList, true, false));
+            dictionaryList.add(deleteAtDictionary(wordList, false, true));
             dictionaryList.add(reverseDictionary(wordList));
             dictionaryList.add(duplicateDictionary(wordList));
             dictionaryList.add(reflectDictionary(wordList));
@@ -71,6 +78,8 @@ public class PasswordCrack {
             dictionaryList.add(capitalizeDictionary(wordList));
             dictionaryList.add(nCapitalizeDictionary(wordList));
             dictionaryList.add(toggleCaseDictionary(wordList));
+            dictionaryList.add(insertAtDictionary(wordList, true, true));
+            dictionaryList.add(deleteAtDictionary(wordList, true, true));
 
             for (var user : userList) {
                 Thread t = new MyThread(dictionaryList, user.get(0), user.get(1), user.get(2), user.get(3));
@@ -102,48 +111,39 @@ public class PasswordCrack {
     }
 
 
-    public static ArrayList<String> prependDictionary(ArrayList<String> dictionary) {
+
+        public static ArrayList<String> insertAtDictionary(ArrayList<String> dictionary, boolean prepend, boolean append) {
+        if (!prepend && !append) return dictionary;
+
         var list = new ArrayList<String>();
         for (String word : dictionary) {
-            for (int i = 0; i < 10; i++) 
-                list.add(Integer.toString(i) + word);
+            for (int i = 0; i < 10; i++) {
+                if (prepend) list.add(Integer.toString(i) + word);
+                if (append)  list.add(word + Integer.toString(i));
+            }
             for (int i = 0; i < 25; i++) {
                 var lower = Character.toString(97 + i);
                 var upper = Character.toString(65 + i);
-                list.add(lower + word);
-                list.add(upper + word);
+                if (prepend) {
+                    list.add(lower + word);
+                    list.add(upper + word);
+                }
+                if (append) {
+                    list.add(word + lower);
+                    list.add(word + upper);
+                }
             }
         }
         return list;
-    }
-
-    public static ArrayList<String> appendDictionary(ArrayList<String> dictionary) {
-        var list = new ArrayList<String>();
-        for (String word : dictionary) {
-            for (int i = 0; i < 10; i++) 
-                list.add(word + Integer.toString(i));
-            for (int i = 0; i < 25; i++) {
-                var lower = Character.toString(97 + i);
-                var upper = Character.toString(65 + i);
-                list.add(word + lower);
-                list.add(word + upper);
-            }
         }
-        return list;
-    }
 
-    public static ArrayList<String> deleteFirstDictionary(ArrayList<String> dictionary) {
+
+    public static ArrayList<String> deleteAtDictionary(ArrayList<String> dictionary, boolean first, boolean last) {
+        if (!first && !last) return dictionary;
         var list = new ArrayList<String>();
         for (String word : dictionary) {
-            list.add(word.substring(1, word.length()));
-        }
-        return list;
-    }
-
-    public static ArrayList<String> deleteLastDictionary(ArrayList<String> dictionary) {
-        var list = new ArrayList<String>();
-        for (String word : dictionary) {
-            list.add(word.substring(0, word.length() - 1));
+            if (first) list.add(word.substring(1, word.length()));
+            if (last) list.add(word.substring(0, word.length() - 1));
         }
         return list;
     }
