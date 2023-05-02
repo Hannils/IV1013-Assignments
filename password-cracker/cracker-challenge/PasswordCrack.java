@@ -4,6 +4,38 @@ import java.util.ArrayList;
 import java.util.Scanner;
 
 public class PasswordCrack {
+
+
+
+    public static class MyThread extends Thread {
+        ArrayList<ArrayList<String>> dictionaryList;
+        String salt;
+        String encryptedPassword;
+        String firstname;
+        String lastname;
+        public MyThread(ArrayList<ArrayList<String>> dictionaryList, String salt, String encryptedPassword, String firstname, String lastname) {
+            this.dictionaryList = dictionaryList;
+            this.salt = salt;
+            this.encryptedPassword = encryptedPassword;
+            this.firstname = firstname;
+            this.lastname = lastname;
+        }
+        public void run() {
+            boolean cracked = false;
+            for (ArrayList<String> dic : dictionaryList) {
+                for (String word : dic) {
+                    if (crack(salt, word, encryptedPassword) != null) {
+                        System.out.println("Password found: " + word + " for user: " + firstname + " " + lastname );
+                        cracked = true;
+                        break;
+                    }
+                    if (cracked == true) break;
+                }
+                if (cracked == true) break;
+            }
+            return;
+        }
+    }
     public static void main(String[] args) {
         File dictionary = new File(args[0]);
         File passwd = new File(args[1]);
@@ -22,11 +54,11 @@ public class PasswordCrack {
                 userNames.add(passwdLine.get(3));
 
             }
-            while (dictionaryScanner.hasNextLine()) {
-                wordList.add(dictionaryScanner.nextLine());
-            }
             for (var name : userNames) {
                 wordList.add(name);
+            }
+            while (dictionaryScanner.hasNextLine()) {
+                wordList.add(dictionaryScanner.nextLine());
             }
             ArrayList<ArrayList<String>> dictionaryList = new ArrayList<>();
             dictionaryList.add(wordList);
@@ -42,42 +74,21 @@ public class PasswordCrack {
             dictionaryList.add(nCapitalizeDictionary(wordList));
             dictionaryList.add(toggleCaseDictionary(wordList));
 
-            //dictionaryList.add(prependDictionary(dictionaryList.get(0)));
-            //dictionaryList.add(appendDictionary(dictionaryList.get(0)));
-            //dictionaryList.add(deleteFirstDictionary(dictionaryList.get(0)));
-            //dictionaryList.add(deleteLastDictionary(dictionaryList.get(0)));
-            //dictionaryList.add(reverseDictionary(dictionaryList.get(0)));
-            //dictionaryList.add(duplicateDictionary(dictionaryList.get(0)));
-            //dictionaryList.add(reflectDictionary(dictionaryList.get(0)));
-            //dictionaryList.add(uppercaseDictionary(dictionaryList.get(0)));
-            //dictionaryList.add(capitalizeDictionary(dictionaryList.get(0)));
-            //dictionaryList.add(nCapitalizeDictionary(dictionaryList.get(0)));
-            //dictionaryList.add(toggleCaseDictionary(dictionaryList.get(0)));
-//
-            //dictionaryList.add(prependDictionary(dictionaryList.get(1)));
-            //dictionaryList.add(appendDictionary(dictionaryList.get(1)));
-            //dictionaryList.add(deleteFirstDictionary(dictionaryList.get(1)));
-            //dictionaryList.add(deleteLastDictionary(dictionaryList.get(1)));
-            //dictionaryList.add(reverseDictionary(dictionaryList.get(1)));
-            //dictionaryList.add(duplicateDictionary(dictionaryList.get(1)));
-            //dictionaryList.add(reflectDictionary(dictionaryList.get(1)));
-            //dictionaryList.add(uppercaseDictionary(dictionaryList.get(1)));
-            //dictionaryList.add(capitalizeDictionary(dictionaryList.get(1)));
-            //dictionaryList.add(nCapitalizeDictionary(dictionaryList.get(1)));
-            //dictionaryList.add(toggleCaseDictionary(dictionaryList.get(1)));
-
-
             for (var user : userList) {
-                for (var dic : dictionaryList) {
-                    for (String word : dic) {
-                        if (crack(user.get(0), word, user.get(1)) != null) {
-                            System.out.println("Password found: " + word + " for user: " + user.get(2) + " " + user.get(3) );
-                            break;
-                        }
-                    }
-                    break;
-                }
+                Thread t = new MyThread(dictionaryList, user.get(0), user.get(1), user.get(2), user.get(3));
+                t.start();
             }
+
+            //for (var user : userList) {
+            //    for (ArrayList<String> dic : dictionaryList) {
+            //        for (String word : dic) {
+            //            if (crack(user.get(0), word, user.get(1)) != null) {
+            //                System.out.println("Password found: " + word + " for user: " + user.get(2) + " " + user.get(3) );
+            //                break;
+            //            }
+            //        }
+            //    }
+            //}
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         }
@@ -92,14 +103,13 @@ public class PasswordCrack {
                 add(encrypted.substring(0, 2)); 
                 add(encrypted);
                 add(lines[0]);
-                add(splitUserInfo[splitUserInfo.length - 1]);
+                add(splitUserInfo[splitUserInfo.length - 1].toLowerCase());
             } 
         };
     }
 
 
     public static String crack(String salt, String str, String encryptedPassword) {
-            //System.out.println("Testing: " + str);
             if (jcrypt.crypt(salt, str).equals(encryptedPassword))
                 return str;
         return null;
