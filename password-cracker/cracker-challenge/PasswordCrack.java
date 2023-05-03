@@ -4,170 +4,68 @@ import java.util.ArrayList;
 import java.util.Scanner;
 
 public class PasswordCrack {
-
-    public static class MyThread extends Thread {
-        ArrayList<String> dictionaryList;
-        String salt;
-        String encryptedPassword;
-        String firstname;
-        String lastname;
-        boolean cracked = false;
-
-        public MyThread(ArrayList<String> dictionaryList, String salt, String encryptedPassword,
-                String firstname, String lastname) {
-            this.dictionaryList = dictionaryList;
-            this.salt = salt;
-            this.encryptedPassword = encryptedPassword;
-            this.firstname = firstname;
-            this.lastname = lastname;
-        }
-
-        public void run() {
-            for (String word : dictionaryList) {
-                if (crack(salt, word, encryptedPassword) != null) {
-                    System.out.println(word + " for " + firstname + " " + lastname);
-                    cracked = true;
-                    break;
-                }
-            }
-        }
-
-        public boolean isCracked() {
-            return cracked;
-        }
-    }
-
-    public static class AppendingThread extends Thread {
-        ArrayList<ArrayList<String>> dictionaryList;
-        String salt;
-        String encryptedPassword;
-        String firstname;
-        String lastname;
-        boolean cracked = false;
-
-        public AppendingThread(ArrayList<ArrayList<String>> dictionaryList, String salt, String encryptedPassword,
-                String firstname, String lastname) {
-            this.dictionaryList = dictionaryList;
-            this.salt = salt;
-            this.encryptedPassword = encryptedPassword;
-            this.firstname = firstname;
-            this.lastname = lastname;
-        }
-
-        public void run() {
-            for (var dict : dictionaryList)
-                for (String word : dict) {
-                    if (crack(salt, word, encryptedPassword) != null) {
-                        System.out.println(word + " for " + firstname + " " + lastname);
-                        cracked = true;
-                        break;
-                    }
-                }
-        }
-
-        public boolean isCracked() {
-            return cracked;
-        }
-    }
+    private static ArrayList<String> userNames;
+    private static ArrayList<ArrayList<String>> userList;
+    private static ArrayList<String> temp;
+    private static CrackingThread[] threadList;
+    private static boolean[] cracked;
+    private static ArrayList<IMangle> manglerList;
+    private static Scanner passwdScanner;
+    private static Scanner dictionaryScanner;
+    private static ArrayList<String> wordList;
 
     public static void main(String[] args) {
-        File dictionary = new File(args[0]);
-        File passwd = new File(args[1]);
-
         try {
-            Scanner passwdScanner = new Scanner(passwd);
-            Scanner dictionaryScanner = new Scanner(dictionary);
-            ArrayList<String> wordList = new ArrayList<>() {
-                {
-                    add("123456");
-                    add("1234567");
-                    add("111111");
-                    add("123456789");
-                    add("1234567890");
-                }
-            };
-            ArrayList<String> userNames = new ArrayList<>();
-            ArrayList<ArrayList<String>> userList = new ArrayList<>();
-            MyThread[] threadList;
-            AppendingThread[] appendingList;
-            boolean[] cracked;
+            File dictionary = new File(args[0]);
+            File passwd = new File(args[1]);
+            userNames = new ArrayList<>();
+            userList = new ArrayList<>();
+            temp = new ArrayList<>();
+            manglerList = new ArrayList<>();
+            passwdScanner = new Scanner(passwd);
+            dictionaryScanner = new Scanner(dictionary);
+            wordList = new ArrayList<>();
 
-            while (passwdScanner.hasNextLine()) {
-                var passwdLine = parsePasswd(passwdScanner.nextLine());
-                userList.add(passwdLine);
-                userNames.add(passwdLine.get(2));
-                userNames.add(passwdLine.get(3));
-
-            }
-            for (var name : userNames) {
-                wordList.add(name);
-            }
-            while (dictionaryScanner.hasNextLine()) {
-                wordList.add(dictionaryScanner.nextLine());
-            }
-            ArrayList<IMangle> dictionaryList = new ArrayList<>();
-            dictionaryList.add((String s) -> s);
-            dictionaryList.add((String s) -> deleteFirst(s));
-            dictionaryList.add((String s) -> deleteLast(s));
-            dictionaryList.add((String s) -> reverse(s));
-            dictionaryList.add((String s) -> duplicate(s));
-            dictionaryList.add((String s) -> reflect(s));
-            dictionaryList.add((String s) -> (s.toUpperCase()));
-            dictionaryList.add((String s) -> capitalize(s));
-            dictionaryList.add((String s) -> nCapitalize(s));
-            dictionaryList.add((String s) -> toggle(s));
-            dictionaryList.add((String s) -> toggleReverse(s));
-            for (int i = 0; i < 25; i++) {
-                if (i < 10) {
-                    dictionaryList.add(new MangleAppend(Integer.toString(i)));
-                    dictionaryList.add(new ManglePrepend(Integer.toString(i)));
-                }
-                dictionaryList.add(new MangleAppend(Character.toString(97 + i)));
-                dictionaryList.add(new MangleAppend(Character.toString(65 + i)));
-                dictionaryList.add(new ManglePrepend(Character.toString(97 + i)));
-                dictionaryList.add(new ManglePrepend(Character.toString(65 + i)));
-            }
-
-            // dictionaryList.add(wordList);
-            // dictionaryList.add(deleteFirstDictionary(wordList));
-            // dictionaryList.add(deleteLastDictionary(wordList));
-            // dictionaryList.add(reverseDictionary(wordList));
-            // dictionaryList.add(duplicateDictionary(wordList));
-            // dictionaryList.add(reflectDictionary(wordList));
-            // dictionaryList.add(uppercaseDictionary(wordList));
-            // dictionaryList.add(capitalizeDictionary(wordList));
-            // dictionaryList.add(nCapitalizeDictionary(wordList));
-            // dictionaryList.add(toggleCaseDictionary(wordList));
-            // dictionaryList.add(prependDictionary(wordList));
-            // dictionaryList.add(appendDictionary(wordList));
+            readPasswdFile();
+            populateWordList();
             cracked = new boolean[userList.size()];
-            threadList = new MyThread[userList.size()];
+            threadList = new CrackingThread[userList.size()];
+            populateMangleList();
 
-            ArrayList<String> temp = new ArrayList<>();
-            for (var dict : dictionaryList) {
+            for (var mangler : manglerList) {
                 temp.clear();
                 for (var word : wordList) {
-                    temp.add(dict.mangle(word));
+                    temp.add(mangler.mangle(word));
                 }
                 for (int i = 0; i < cracked.length; i++) {
                     if (cracked[i] == false) {
                         var user = userList.get(i);
-                        MyThread t = new MyThread(temp, user.get(0), user.get(1), user.get(2), user.get(3));
+                        CrackingThread t = new CrackingThread(temp, user.get(0), user.get(1), user.get(2), user.get(3));
                         threadList[i] = t;
                         t.start();
                     }
                 }
-
                 for (int i = 0; i < threadList.length; i++) {
                     threadList[i].join();
                     cracked[i] = threadList[i].isCracked();
                 }
             }
-        } catch (FileNotFoundException | InterruptedException e) {
+        } catch (FileNotFoundException e) {
+            System.out.println("toString(): " + e.toString());
+            System.out.println("getMessage(): " + e.getMessage());
+            System.out.println("StackTrace(): ");
+            e.printStackTrace();
+        } catch (InterruptedException e) {
             e.printStackTrace();
         }
     }
 
+    /**
+     * Function for parsing the input retrieved from the entered passwd file
+     * 
+     * @param line - Entire line read from passwd
+     * @return ArrayList of {Salt, Hash, Firstname, Lastname}
+     */
     public static ArrayList<String> parsePasswd(String line) {
         var lines = line.split(":");
         var splitUserInfo = lines[4].split(" ");
@@ -181,128 +79,89 @@ public class PasswordCrack {
         };
     }
 
-    public static String crack(String salt, String str, String encryptedPassword) {
-        if (jcrypt.crypt(salt, str).equals(encryptedPassword))
-            return str;
-        return null;
-    }
-
-    public static ArrayList<String> prependDictionary(ArrayList<String> dictionary) {
-        var list = new ArrayList<String>();
-        for (String word : dictionary) {
-            for (int i = 0; i < 10; i++)
-                list.add(Integer.toString(i) + word);
-            for (int i = 0; i < 25; i++) {
-                var lower = Character.toString(97 + i);
-                var upper = Character.toString(65 + i);
-                list.add(lower + word);
-                list.add(upper + word);
-            }
+    /**
+     * Function to fill the wordList used for password cracking
+     */
+    public static void populateWordList() {
+        wordList.add("123456");
+        wordList.add("1234567");
+        wordList.add("111111");
+        wordList.add("123456789");
+        wordList.add("1234567890");
+        for (var name : userNames) {
+            wordList.add(name);
         }
-        return list;
+        readDictionary();
     }
 
-    public static ArrayList<String> appendDictionary(ArrayList<String> dictionary) {
-        var list = new ArrayList<String>();
-        for (String word : dictionary) {
-            for (int i = 0; i < 10; i++)
-                list.add(word + Integer.toString(i));
-            for (int i = 0; i < 25; i++) {
-                var lower = Character.toString(97 + i);
-                var upper = Character.toString(65 + i);
-                list.add(word + lower);
-                list.add(word + upper);
-            }
+    /**
+     * Function to read input from entered dictionary
+     */
+    public static void readDictionary() {
+        while (dictionaryScanner.hasNextLine()) {
+            wordList.add(dictionaryScanner.nextLine());
         }
-        return list;
     }
 
-    public static ArrayList<String> deleteFirstDictionary(ArrayList<String> dictionary) {
-        var list = new ArrayList<String>();
-        for (String word : dictionary) {
-            list.add(word.substring(1, word.length()));
+    public static void readPasswdFile() {
+        while (passwdScanner.hasNextLine()) {
+            var passwdLine = parsePasswd(passwdScanner.nextLine());
+            userList.add(passwdLine);
+            userNames.add(passwdLine.get(2));
+            userNames.add(passwdLine.get(3));
         }
-        return list;
     }
 
-    public static ArrayList<String> deleteLastDictionary(ArrayList<String> dictionary) {
-        var list = new ArrayList<String>();
-        for (String word : dictionary) {
-            list.add(word.substring(0, word.length() - 1));
-        }
-        return list;
-    }
+    public static void populateMangleList() {
+        
+        manglerList.add((String word) -> word); // Normal
+        manglerList.add((String word) -> word.substring(1)); // Delete first
+        manglerList.add((String word) -> word.substring(0, word.length() - 1)); // Delete last
+        manglerList.add((String word) -> new StringBuilder(word).reverse().toString()); // Reverse the string
+        manglerList.add((String word) -> (word + word)); // Duplicate the string
+        manglerList.add((String word) -> word + new StringBuilder(word).reverse().toString()); // Reflect the string
+        manglerList.add((String word) -> (new StringBuilder(word).reverse().toString() + word)); // Reflect reverse the string
+        manglerList.add((String word) -> (word.toUpperCase())); // Uppercase the string
+        manglerList.add((String word) -> word.substring(0, 1).toUpperCase() + word.substring(1)); // Capitalize the string
+        manglerList.add((String word) -> word.substring(0, 1) + word.substring(1).toUpperCase()); // nCapitalize the string
+        manglerList.add((String word) -> toggleCase(word)); // Togglecase even
+        manglerList.add((String word) -> toggleCaseReverse(word)); // Togglecase odd
 
-    public static ArrayList<String> reverseDictionary(ArrayList<String> dictionary) {
-        var list = new ArrayList<String>();
-        for (String word : dictionary) {
-            list.add(new StringBuilder(word).reverse().toString());
-        }
-        return list;
-    }
-
-    public static ArrayList<String> duplicateDictionary(ArrayList<String> dictionary) {
-        var list = new ArrayList<String>();
-        for (String word : dictionary) {
-            list.add(word + word);
-        }
-        return list;
-    }
-
-    public static ArrayList<String> reflectDictionary(ArrayList<String> dictionary) {
-        var list = new ArrayList<String>();
-        for (String word : dictionary) {
-            list.add(word + new StringBuilder(word).reverse().toString());
-            list.add(new StringBuilder(word).reverse().toString() + word);
-        }
-        return list;
-    }
-
-    public static ArrayList<String> uppercaseDictionary(ArrayList<String> dictionary) {
-        var list = new ArrayList<String>();
-        for (String word : dictionary) {
-            list.add(word.toUpperCase());
-        }
-        return list;
-    }
-
-    public static ArrayList<String> capitalizeDictionary(ArrayList<String> dictionary) {
-        var list = new ArrayList<String>();
-        for (String word : dictionary) {
-            list.add(word.substring(0, 1).toUpperCase() + word.substring(1));
-        }
-        return list;
-    }
-
-    public static ArrayList<String> nCapitalizeDictionary(ArrayList<String> dictionary) {
-        var list = new ArrayList<String>();
-        for (String word : dictionary) {
-            list.add(word.substring(0, 1) + word.substring(1).toUpperCase());
-        }
-        return list;
-    }
-
-    public static ArrayList<String> toggleCaseDictionary(ArrayList<String> dictionary) {
-        var list = new ArrayList<String>();
-        for (String word : dictionary) {
-            var tmpStr = word;
-            var tmpStr2 = word;
-            for (int i = 0; i < word.length(); i++) {
-                if (i % 2 == 0) {
-                    tmpStr = tmpStr.substring(0, i) + Character.toUpperCase(tmpStr.charAt(i))
-                            + tmpStr.substring(i + 1);
-                } else {
-                    tmpStr2 = tmpStr2.substring(0, i) + Character.toUpperCase(tmpStr2.charAt(i))
-                            + tmpStr2.substring(i + 1);
+        for (int i = 0; i < 12; i++) {
+            for (int j = 0; j < 12; j++) {
+                for (int k = 0; k < 12; k++) {
+                    if (i != j && k != j && k != i) {
+                        manglerList.add(new MangleCombiner(new IMangle[]{manglerList.get(i), manglerList.get(j), manglerList.get(k)}));
+                    }
                 }
             }
-            list.add(tmpStr);
-            list.add(tmpStr2);
         }
-        return list;
+
+        //for (int i = 0; i < 10; i++) {
+        //    manglerList.add(new ManglePrepend(Integer.toString(i))); // Prepend all numbers
+        //    manglerList.add(new MangleAppend(Integer.toString(i))); // Append all number
+        //}
+        //for (int i = 0; i < 25; i++) {
+        //    manglerList.add(new MangleAppend(Character.toString(97 + i))); // Append all lowercase
+        //    manglerList.add(new MangleAppend(Character.toString(65 + i))); // Append all uppercase
+        //    manglerList.add(new ManglePrepend(Character.toString(97 + i))); // Prepend all lowercase
+        //    manglerList.add(new ManglePrepend(Character.toString(65 + i))); // Prepend all uppercase
+        //}
+
+
+
+
+    
+        
+
+
+
+
+
+
     }
 
-    public static String toggle(String word) {
+    public static String toggleCase(String word) {
         var tmpStr = word;
         for (int i = 0; i < word.length(); i++) {
             if (i % 2 == 0) {
@@ -313,7 +172,7 @@ public class PasswordCrack {
         return tmpStr;
     }
 
-    public static String toggleReverse(String word) {
+    public static String toggleCaseReverse(String word) {
         var tmpStr = word;
         for (int i = 0; i < word.length(); i++) {
             if (i % 2 != 0) {
@@ -322,49 +181,5 @@ public class PasswordCrack {
             }
         }
         return tmpStr;
-    }
-
-    public static String toUpperCase(String word) {
-        return word.toUpperCase();
-    }
-
-    public static String duplicate(String word) {
-        return word + word;
-    }
-
-    public static String reverse(String word) {
-        return new StringBuilder(word).reverse().toString();
-    }
-
-    public static String capitalize(String word) {
-        return word.substring(0, 1).toUpperCase() + word.substring(1);
-    }
-
-    public static String nCapitalize(String word) {
-        return word.substring(0, 1) + word.substring(1).toUpperCase();
-    }
-
-    public static String reflect(String word) {
-        return word + reverse(word);
-    }
-
-    public static String reflectReverse(String word) {
-        return reverse(word) + word;
-    }
-
-    public static String deleteFirst(String word) {
-        return word.substring(1);
-    }
-
-    public static String deleteLast(String word) {
-        return word.substring(0, word.length() - 1);
-    }
-
-    public static String append(String word, char c) {
-        return word + c;
-    }
-
-    public static String prepend(String word, String pre) {
-        return pre + word;
     }
 }

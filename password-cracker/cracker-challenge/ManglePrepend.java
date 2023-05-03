@@ -5,6 +5,6 @@ public class ManglePrepend implements IMangle {
         this.c = c;
     }
     public String mangle(String s) {
-        return s + c;
+        return c + s;
     }    
 }
