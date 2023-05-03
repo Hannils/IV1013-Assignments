@@ -113,7 +113,7 @@ public class PasswordCrack {
     }
 
     public static void populateMangleList() {
-        
+
         manglerList.add((String word) -> word); // Normal
         manglerList.add((String word) -> word.substring(1)); // Delete first
         manglerList.add((String word) -> word.substring(0, word.length() - 1)); // Delete last
@@ -121,43 +121,47 @@ public class PasswordCrack {
         manglerList.add((String word) -> (word + word)); // Duplicate the string
         manglerList.add((String word) -> word + new StringBuilder(word).reverse().toString()); // Reflect the string
         manglerList.add((String word) -> (new StringBuilder(word).reverse().toString() + word)); // Reflect reverse the string
+
         manglerList.add((String word) -> (word.toUpperCase())); // Uppercase the string
         manglerList.add((String word) -> word.substring(0, 1).toUpperCase() + word.substring(1)); // Capitalize the string
         manglerList.add((String word) -> word.substring(0, 1) + word.substring(1).toUpperCase()); // nCapitalize the string
         manglerList.add((String word) -> toggleCase(word)); // Togglecase even
         manglerList.add((String word) -> toggleCaseReverse(word)); // Togglecase odd
 
-        for (int i = 0; i < 12; i++) {
-            for (int j = 0; j < 12; j++) {
-                for (int k = 0; k < 12; k++) {
-                    if (i != j && k != j && k != i) {
-                        manglerList.add(new MangleCombiner(new IMangle[]{manglerList.get(i), manglerList.get(j), manglerList.get(k)}));
-                    }
+        for (int i = 0; i < 10; i++) {
+            manglerList.add(new ManglePrepend(Integer.toString(i))); // Prepend all numbers
+            manglerList.add(new MangleAppend(Integer.toString(i))); // Append all number
+        }
+        for (int i = 0; i < 25; i++) {
+            manglerList.add(new MangleAppend(Character.toString(97 + i))); // Append all lowercase
+            manglerList.add(new MangleAppend(Character.toString(65 + i))); // Append all uppercase
+            manglerList.add(new ManglePrepend(Character.toString(97 + i))); // Prepend all lowercase
+            manglerList.add(new ManglePrepend(Character.toString(65 + i))); // Prepend all uppercase
+        }
+
+        int numberOfManglers = manglerList.size();
+        
+        // Perform all possible combinations of 2 manglers
+        for (int i = 0; i < numberOfManglers; i++) {
+            for (int j = 0; j < numberOfManglers; j++) {
+                if (i != j) {
+                    manglerList.add(new MangleCombiner(
+                            new IMangle[] { manglerList.get(i), manglerList.get(j) }));
                 }
             }
         }
 
-        //for (int i = 0; i < 10; i++) {
-        //    manglerList.add(new ManglePrepend(Integer.toString(i))); // Prepend all numbers
-        //    manglerList.add(new MangleAppend(Integer.toString(i))); // Append all number
-        //}
-        //for (int i = 0; i < 25; i++) {
-        //    manglerList.add(new MangleAppend(Character.toString(97 + i))); // Append all lowercase
-        //    manglerList.add(new MangleAppend(Character.toString(65 + i))); // Append all uppercase
-        //    manglerList.add(new ManglePrepend(Character.toString(97 + i))); // Prepend all lowercase
-        //    manglerList.add(new ManglePrepend(Character.toString(65 + i))); // Prepend all uppercase
-        //}
-
-
-
-
-    
-        
-
-
-
-
-
+        // Perform all possible combinations of 3 manglers
+        for (int i = 0; i < numberOfManglers; i++) {
+            for (int j = 0; j < numberOfManglers; j++) {
+                for (int k = 0; k < numberOfManglers; k++) {
+                    if (i != j && k != j && k != i) {
+                        manglerList.add(new MangleCombiner(
+                                new IMangle[] { manglerList.get(i), manglerList.get(j), manglerList.get(k) }));
+                    }
+                }
+            }
+        }
 
     }
 
