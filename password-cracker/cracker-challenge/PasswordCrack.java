@@ -37,6 +37,39 @@ public class PasswordCrack {
         }
     }
 
+    public static class AppendingThread extends Thread {
+        ArrayList<ArrayList<String>> dictionaryList;
+        String salt;
+        String encryptedPassword;
+        String firstname;
+        String lastname;
+        boolean cracked = false;
+
+        public AppendingThread(ArrayList<ArrayList<String>> dictionaryList, String salt, String encryptedPassword,
+                String firstname, String lastname) {
+            this.dictionaryList = dictionaryList;
+            this.salt = salt;
+            this.encryptedPassword = encryptedPassword;
+            this.firstname = firstname;
+            this.lastname = lastname;
+        }
+
+        public void run() {
+            for (var dict : dictionaryList)
+                for (String word : dict) {
+                    if (crack(salt, word, encryptedPassword) != null) {
+                        System.out.println(word + " for " + firstname + " " + lastname);
+                        cracked = true;
+                        break;
+                    }
+                }
+        }
+
+        public boolean isCracked() {
+            return cracked;
+        }
+    }
+
     public static void main(String[] args) {
         File dictionary = new File(args[0]);
         File passwd = new File(args[1]);
@@ -44,8 +77,7 @@ public class PasswordCrack {
         try {
             Scanner passwdScanner = new Scanner(passwd);
             Scanner dictionaryScanner = new Scanner(dictionary);
-            ArrayList<String> wordList = new ArrayList<>()
-            {
+            ArrayList<String> wordList = new ArrayList<>() {
                 {
                     add("123456");
                     add("1234567");
@@ -57,6 +89,7 @@ public class PasswordCrack {
             ArrayList<String> userNames = new ArrayList<>();
             ArrayList<ArrayList<String>> userList = new ArrayList<>();
             MyThread[] threadList;
+            AppendingThread[] appendingList;
             boolean[] cracked;
 
             while (passwdScanner.hasNextLine()) {
@@ -72,30 +105,54 @@ public class PasswordCrack {
             while (dictionaryScanner.hasNextLine()) {
                 wordList.add(dictionaryScanner.nextLine());
             }
-            ArrayList<ArrayList<String>> dictionaryList = new ArrayList<>();
-            dictionaryList.add(wordList);
-            dictionaryList.add(deleteFirstDictionary(wordList));
-            dictionaryList.add(deleteLastDictionary(wordList));
-            dictionaryList.add(reverseDictionary(wordList));
-            dictionaryList.add(duplicateDictionary(wordList));
-            dictionaryList.add(reflectDictionary(wordList));
-            dictionaryList.add(uppercaseDictionary(wordList));
-            dictionaryList.add(capitalizeDictionary(wordList));
-            dictionaryList.add(nCapitalizeDictionary(wordList));
-            dictionaryList.add(toggleCaseDictionary(wordList));
-            dictionaryList.add(prependDictionary(wordList));
-            dictionaryList.add(appendDictionary(wordList));
-            cracked = new boolean[userList.size()];
-            threadList = new MyThread[userList.size()];
-            for (int i = 0; i < cracked.length; i++) {
-                cracked[i] = false;
+            ArrayList<IMangle> dictionaryList = new ArrayList<>();
+            dictionaryList.add((String s) -> s);
+            dictionaryList.add((String s) -> deleteFirst(s));
+            dictionaryList.add((String s) -> deleteLast(s));
+            dictionaryList.add((String s) -> reverse(s));
+            dictionaryList.add((String s) -> duplicate(s));
+            dictionaryList.add((String s) -> reflect(s));
+            dictionaryList.add((String s) -> (s.toUpperCase()));
+            dictionaryList.add((String s) -> capitalize(s));
+            dictionaryList.add((String s) -> nCapitalize(s));
+            dictionaryList.add((String s) -> toggle(s));
+            dictionaryList.add((String s) -> toggleReverse(s));
+            for (int i = 0; i < 25; i++) {
+                if (i < 10) {
+                    dictionaryList.add(new MangleAppend(Integer.toString(i)));
+                    dictionaryList.add(new ManglePrepend(Integer.toString(i)));
+                }
+                dictionaryList.add(new MangleAppend(Character.toString(97 + i)));
+                dictionaryList.add(new MangleAppend(Character.toString(65 + i)));
+                dictionaryList.add(new ManglePrepend(Character.toString(97 + i)));
+                dictionaryList.add(new ManglePrepend(Character.toString(65 + i)));
             }
 
+            // dictionaryList.add(wordList);
+            // dictionaryList.add(deleteFirstDictionary(wordList));
+            // dictionaryList.add(deleteLastDictionary(wordList));
+            // dictionaryList.add(reverseDictionary(wordList));
+            // dictionaryList.add(duplicateDictionary(wordList));
+            // dictionaryList.add(reflectDictionary(wordList));
+            // dictionaryList.add(uppercaseDictionary(wordList));
+            // dictionaryList.add(capitalizeDictionary(wordList));
+            // dictionaryList.add(nCapitalizeDictionary(wordList));
+            // dictionaryList.add(toggleCaseDictionary(wordList));
+            // dictionaryList.add(prependDictionary(wordList));
+            // dictionaryList.add(appendDictionary(wordList));
+            cracked = new boolean[userList.size()];
+            threadList = new MyThread[userList.size()];
+
+            ArrayList<String> temp = new ArrayList<>();
             for (var dict : dictionaryList) {
+                temp.clear();
+                for (var word : wordList) {
+                    temp.add(dict.mangle(word));
+                }
                 for (int i = 0; i < cracked.length; i++) {
                     if (cracked[i] == false) {
                         var user = userList.get(i);
-                        MyThread t = new MyThread(dict, user.get(0), user.get(1), user.get(2), user.get(3));
+                        MyThread t = new MyThread(temp, user.get(0), user.get(1), user.get(2), user.get(3));
                         threadList[i] = t;
                         t.start();
                     }
@@ -105,7 +162,6 @@ public class PasswordCrack {
                     threadList[i].join();
                     cracked[i] = threadList[i].isCracked();
                 }
-
             }
         } catch (FileNotFoundException | InterruptedException e) {
             e.printStackTrace();
@@ -229,21 +285,43 @@ public class PasswordCrack {
     public static ArrayList<String> toggleCaseDictionary(ArrayList<String> dictionary) {
         var list = new ArrayList<String>();
         for (String word : dictionary) {
-            var tmpStr1 = word;
+            var tmpStr = word;
             var tmpStr2 = word;
             for (int i = 0; i < word.length(); i++) {
                 if (i % 2 == 0) {
-                    tmpStr1 = tmpStr1.substring(0, i) + Character.toUpperCase(tmpStr1.charAt(i))
-                            + tmpStr1.substring(i + 1);
+                    tmpStr = tmpStr.substring(0, i) + Character.toUpperCase(tmpStr.charAt(i))
+                            + tmpStr.substring(i + 1);
                 } else {
                     tmpStr2 = tmpStr2.substring(0, i) + Character.toUpperCase(tmpStr2.charAt(i))
                             + tmpStr2.substring(i + 1);
                 }
             }
-            list.add(tmpStr1);
+            list.add(tmpStr);
             list.add(tmpStr2);
         }
         return list;
+    }
+
+    public static String toggle(String word) {
+        var tmpStr = word;
+        for (int i = 0; i < word.length(); i++) {
+            if (i % 2 == 0) {
+                tmpStr = tmpStr.substring(0, i) + Character.toUpperCase(tmpStr.charAt(i))
+                        + tmpStr.substring(i + 1);
+            }
+        }
+        return tmpStr;
+    }
+
+    public static String toggleReverse(String word) {
+        var tmpStr = word;
+        for (int i = 0; i < word.length(); i++) {
+            if (i % 2 != 0) {
+                tmpStr = tmpStr.substring(0, i) + Character.toUpperCase(tmpStr.charAt(i))
+                        + tmpStr.substring(i + 1);
+            }
+        }
+        return tmpStr;
     }
 
     public static String toUpperCase(String word) {
@@ -282,8 +360,8 @@ public class PasswordCrack {
         return word.substring(0, word.length() - 1);
     }
 
-    public static String append(String word, String app) {
-        return word + app;
+    public static String append(String word, char c) {
+        return word + c;
     }
 
     public static String prepend(String word, String pre) {
