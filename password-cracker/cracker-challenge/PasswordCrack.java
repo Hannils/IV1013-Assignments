@@ -15,19 +15,29 @@ public class PasswordCrack {
     private static ArrayList<String> wordList;
 
     public static void main(String[] args) {
-        try {
             File dictionary = new File(args[0]);
             File passwd = new File(args[1]);
             userNames = new ArrayList<>();
             userList = new ArrayList<>();
             temp = new ArrayList<>();
             manglerList = new ArrayList<>();
-            passwdScanner = new Scanner(passwd);
-            dictionaryScanner = new Scanner(dictionary);
+            try {
+                passwdScanner = new Scanner(passwd);
+            } catch (FileNotFoundException e) {
+                System.out.println("<passwd>: No such file or directory\n    File entered: " + args[1]);
+                System.exit(0);
+            }
+            try {
+                dictionaryScanner = new Scanner(dictionary);
+            } catch (FileNotFoundException e) {
+                System.out.println("<dictionary>: No such file or directory\n    File entered: " + args[0]);
+                System.exit(0);
+            }
             wordList = new ArrayList<>();
 
             readPasswdFile();
-            populateWordList();
+            prePopulateWordList();
+            readDictionary();
             cracked = new boolean[userList.size()];
             threadList = new CrackingThread[userList.size()];
             populateMangleList();
@@ -46,18 +56,15 @@ public class PasswordCrack {
                     }
                 }
                 for (int i = 0; i < threadList.length; i++) {
-                    threadList[i].join();
+                    try {
+                        threadList[i].join();
+                    } catch (InterruptedException e) {
+                        System.out.println("Thread interruption occurred");
+                        System.exit(0);
+                    }
                     cracked[i] = threadList[i].isCracked();
                 }
             }
-        } catch (FileNotFoundException e) {
-            System.out.println("toString(): " + e.toString());
-            System.out.println("getMessage(): " + e.getMessage());
-            System.out.println("StackTrace(): ");
-            e.printStackTrace();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
     }
 
     /**
@@ -82,7 +89,7 @@ public class PasswordCrack {
     /**
      * Function to fill the wordList used for password cracking
      */
-    public static void populateWordList() {
+    public static void prePopulateWordList() {
         wordList.add("123456");
         wordList.add("1234567");
         wordList.add("111111");
@@ -91,7 +98,6 @@ public class PasswordCrack {
         for (var name : userNames) {
             wordList.add(name);
         }
-        readDictionary();
     }
 
     /**
