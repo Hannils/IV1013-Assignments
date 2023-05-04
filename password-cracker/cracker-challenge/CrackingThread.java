@@ -4,23 +4,18 @@ public class CrackingThread extends Thread {
     private ArrayList<String> dictionaryList;
     private String salt;
     private String encryptedPassword;
-    private String firstname;
-    private String lastname;
     private boolean cracked = false;
 
-    public CrackingThread(ArrayList<String> dictionaryList, String salt, String encryptedPassword,
-            String firstname, String lastname) {
+    public CrackingThread(ArrayList<String> dictionaryList, String salt, String encryptedPassword) {
         this.dictionaryList = dictionaryList;
         this.salt = salt;
         this.encryptedPassword = encryptedPassword;
-        this.firstname = firstname;
-        this.lastname = lastname;
     }
 
     public void run() {
         for (String word : dictionaryList) {
             if (crack(salt, word, encryptedPassword) != null) {
-                System.out.println(word + " for " + firstname + " " + lastname);
+                System.out.println(word);
                 cracked = true;
                 break;
             }

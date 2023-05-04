@@ -4,7 +4,7 @@
 CRACKERFILES=PasswordCrack.java passwd2-plain.txt
 
 # Add any additional files with java classes here
-CRACKEREXTRAS=
+CRACKEREXTRAS=CrackingThread.java IMangle.java MangleAppend.java ManglePrepend.java MangleCombiner.java
 
 AUTHFILES=.kaka .base.xml
 

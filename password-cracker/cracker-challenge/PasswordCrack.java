@@ -1,5 +1,6 @@
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.nio.charset.MalformedInputException;
 import java.util.ArrayList;
 import java.util.Scanner;
 
@@ -24,20 +25,54 @@ public class PasswordCrack {
             try {
                 passwdScanner = new Scanner(passwd);
             } catch (FileNotFoundException e) {
-                System.out.println("<passwd>: No such file or directory\n    File entered: " + args[1]);
+                System.out.println();
+                System.out.println("<passwd>: No such file or directory");
+                System.out.println("File entered: " + args[1]);
+                System.out.println();
                 System.exit(0);
             }
             try {
                 dictionaryScanner = new Scanner(dictionary);
             } catch (FileNotFoundException e) {
-                System.out.println("<dictionary>: No such file or directory\n    File entered: " + args[0]);
+                System.out.println();
+                System.out.println("<dictionary>: No such file or directory");
+                System.out.println("File entered: " + args[0]);
+                System.out.println();
+
                 System.exit(0);
             }
             wordList = new ArrayList<>();
-
-            readPasswdFile();
+            try {
+                readPasswdFile();
+            } catch (ArrayIndexOutOfBoundsException e) {
+                System.out.println();
+                System.out.println("Malformed passwd file:");
+                System.out.println("    Something went wrong with parsing the passwd file: " + args[1]);
+                System.out.println("    Make sure the file follows the following format: account:encrypted password data:uid:gid:GCOS-field:homedir:shell");
+                System.out.println();
+                System.exit(0);
+            } catch (IllegalArgumentException e) {
+                System.out.println();
+                System.out.println("Malformed passwd file:");
+                System.out.println("    Something went wrong with parsing the passwd file: " + args[1]);
+                System.out.println("    Make sure the file follows the following format: account:encrypted password data:uid:gid:GCOS-field:homedir:shell");
+                System.out.println("    " + e.getMessage());
+                System.out.println();
+                System.exit(0);
+            } catch (OutOfMemoryError e) {
+                System.out.println();
+                System.out.println("<passwd>: Input file too large");
+                System.out.println();
+            }
             prePopulateWordList();
-            readDictionary();
+            try {
+                readDictionary();
+            } catch (OutOfMemoryError e) {
+                System.out.println();
+                System.out.println("<dictionary>: Input file too large");
+                System.out.println();
+            }
+
             cracked = new boolean[userList.size()];
             threadList = new CrackingThread[userList.size()];
             populateMangleList();
@@ -45,12 +80,19 @@ public class PasswordCrack {
             for (var mangler : manglerList) {
                 temp.clear();
                 for (var word : wordList) {
-                    temp.add(mangler.mangle(word));
+                    if (word.length() == 0) continue;
+                    try {
+                        temp.add(mangler.mangle(word));
+                    } catch (OutOfMemoryError e) {
+                        System.out.println();
+                        System.out.println("Memory ran out during cracking. Please try smaller files.");
+                        System.out.println();
+                    }
                 }
                 for (int i = 0; i < cracked.length; i++) {
                     if (cracked[i] == false) {
                         var user = userList.get(i);
-                        CrackingThread t = new CrackingThread(temp, user.get(0), user.get(1), user.get(2), user.get(3));
+                        CrackingThread t = new CrackingThread(temp, user.get(0), user.get(1));
                         threadList[i] = t;
                         t.start();
                     }
@@ -72,9 +114,12 @@ public class PasswordCrack {
      * 
      * @param line - Entire line read from passwd
      * @return ArrayList of {Salt, Hash, Firstname, Lastname}
+     * @throws MalformedInputException
      */
-    public static ArrayList<String> parsePasswd(String line) {
+    public static ArrayList<String> parsePasswd(String line) throws ArrayIndexOutOfBoundsException, IllegalArgumentException {
         var lines = line.split(":");
+        if (lines.length != 7) throw new IllegalArgumentException("Wrong number of fields on line: " + line);
+        if (lines[1].length() != 13) throw new IllegalArgumentException("Length of hash did not correspond to 13 characters on line: " + line); 
         var splitUserInfo = lines[4].split(" ");
         return new ArrayList<String>() {
             {
@@ -109,7 +154,7 @@ public class PasswordCrack {
         }
     }
 
-    public static void readPasswdFile() {
+    public static void readPasswdFile() throws ArrayIndexOutOfBoundsException {
         while (passwdScanner.hasNextLine()) {
             var passwdLine = parsePasswd(passwdScanner.nextLine());
             userList.add(passwdLine);
@@ -133,6 +178,7 @@ public class PasswordCrack {
         manglerList.add((String word) -> word.substring(0, 1) + word.substring(1).toUpperCase()); // nCapitalize the string
         manglerList.add((String word) -> toggleCase(word)); // Togglecase even
         manglerList.add((String word) -> toggleCaseReverse(word)); // Togglecase odd
+        manglerList.add((String word) -> replaceWithZero(word));
 
         for (int i = 0; i < 10; i++) {
             manglerList.add(new ManglePrepend(Integer.toString(i))); // Prepend all numbers
@@ -148,8 +194,8 @@ public class PasswordCrack {
         int numberOfManglers = manglerList.size();
         
         // Perform all possible combinations of 2 manglers
-        for (int i = 0; i < numberOfManglers; i++) {
-            for (int j = 0; j < numberOfManglers; j++) {
+        for (int i = 1; i < numberOfManglers; i++) {
+            for (int j = 1; j < numberOfManglers; j++) {
                 if (i != j) {
                     manglerList.add(new MangleCombiner(
                             new IMangle[] { manglerList.get(i), manglerList.get(j) }));
@@ -158,9 +204,9 @@ public class PasswordCrack {
         }
 
         // Perform all possible combinations of 3 manglers
-        for (int i = 0; i < numberOfManglers; i++) {
-            for (int j = 0; j < numberOfManglers; j++) {
-                for (int k = 0; k < numberOfManglers; k++) {
+        for (int i = 1; i < numberOfManglers; i++) {
+            for (int j = 1; j < numberOfManglers; j++) {
+                for (int k = 1; k < numberOfManglers; k++) {
                     if (i != j && k != j && k != i) {
                         manglerList.add(new MangleCombiner(
                                 new IMangle[] { manglerList.get(i), manglerList.get(j), manglerList.get(k) }));
@@ -168,7 +214,6 @@ public class PasswordCrack {
                 }
             }
         }
-
     }
 
     public static String toggleCase(String word) {
@@ -191,5 +236,11 @@ public class PasswordCrack {
             }
         }
         return tmpStr;
+    }
+
+    public static String replaceWithZero(String word) {
+                word = word.replace('o', '0');
+                word = word.replace('O', '0');
+                return word;
     }
 }
