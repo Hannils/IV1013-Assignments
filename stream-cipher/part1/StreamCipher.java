@@ -2,9 +2,13 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Random;
 public class StreamCipher {
     public static void main(String[] args) {
@@ -12,19 +16,15 @@ public class StreamCipher {
         try {
             if (args.length != 3) throw new ArrayIndexOutOfBoundsException("Missing parameter from command line");
             long key = Long.parseLong(args[0]);
-            File inputFile = new File(args[1]);
+            Path inputFile = Paths.get(args[1]);
             File outputFile = new File(args[2]);
-            BufferedReader fileReader = new BufferedReader(new FileReader(inputFile));
-            BufferedWriter writer = new BufferedWriter(new FileWriter(outputFile));
+            FileOutputStream writer = new FileOutputStream(outputFile);
             Random prng = new Random(key);
-
-            while (fileReader.ready()) {
-                int value  = prng.nextInt(256);
-                int res = fileReader.read() ^ value;
-                writer.write(res);
+            byte[] input = Files.readAllBytes(inputFile);
+            for (var c : input) {
+                writer.write(c ^ prng.nextInt(256));
             }
             writer.close();
-            fileReader.close();
 
         }catch (NumberFormatException e) {
             System.out.println("NumberFormatException thrown, invalid parameter <key>");
